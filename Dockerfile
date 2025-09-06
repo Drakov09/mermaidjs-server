@@ -4,8 +4,8 @@ FROM node:22 AS base
 # Set the working directory
 WORKDIR /app
 
-# We don't need the standalone Chromium
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+## Allow Puppeteer to download the correct Chromium for each architecture (amd64/arm64)
+# (Don't set PUPPETEER_SKIP_CHROMIUM_DOWNLOAD so multi-arch build works without system Chrome)
 
 ENV NODE_ENV=production \
     PORT=8080 \
@@ -24,18 +24,33 @@ ENV NODE_ENV=production \
     BROWSER_IDLE_MAX_MS=300000 \
     BROWSER_HEADLESS_MODE=new
 
-# Install Google Chrome Stable and fonts
-# Note: this installs the necessary libs to make the browser work with Puppeteer.
-RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates fonts-liberation && \
-    wget --quiet --output-document=- https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-archive.gpg && \
-    sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' && \
-    apt-get update && \
-    apt-get install google-chrome-stable -y --no-install-recommends && \
+## Install shared libraries & fonts needed by headless Chromium (works for both amd64 & arm64)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    fonts-liberation \
+    fonts-noto-cjk \
+    wget \
+    gnupg \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libnss3 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libxshmfence1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libatspi2.0-0 \
+    libgtk-3-0 && \
     rm -rf /var/lib/apt/lists/*
 
-# Verify that Chrome is installed at the expected location
-RUN ls -alh /usr/bin/google-chrome-stable && \
-    /usr/bin/google-chrome-stable --version
+# (Chromium binary will be downloaded during npm ci by Puppeteer)
 
 FROM base AS deps
 COPY package*.json ./
