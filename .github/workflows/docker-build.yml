@@ -1,0 +1,172 @@
+name: Docker Build & Push (MermaidJS Server)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      push:
+        description: '手动触发时是否推送 (true/false)'
+        required: true
+        default: 'false'
+      extra_tag:
+        description: '附加标签 (可选)'
+        required: false
+
+env:
+  DOCKERHUB_NAMESPACE: lihongjie0209
+  IMAGE_NAME: mermaidjs-server
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login Docker Hub
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ startsWith(github.ref,'refs/tags/v') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=raw,value={{inputs.extra_tag}},enable=${{ github.event.inputs.extra_tag != '' }}
+          labels: |
+            org.opencontainers.image.title=Mermaid Diagram Render Service
+            org.opencontainers.image.description=High performance Mermaid to SVG/PNG conversion server
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+      - name: Build & (conditional) Push (multi-arch)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ startsWith(github.ref,'refs/tags/v') || github.event.inputs.push == 'true' }}
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "## 🐳 Docker 构建摘要" >> $GITHUB_STEP_SUMMARY
+          echo "触发: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "是否推送: ${{ startsWith(github.ref,'refs/tags/v') || github.event.inputs.push == 'true' }}" >> $GITHUB_STEP_SUMMARY
+          echo "标签:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.meta.outputs.tags }}' | tr ',' '\n' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  deploy-cloud-run:
+    name: Deploy to Cloud Run
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref,'refs/tags/v')
+    env:
+      CLOUD_RUN_SERVICE_NAME: mermaidjs-server
+      GCP_REGION: asia-east1
+      CLOUD_RUN_MEMORY: 1Gi
+      CLOUD_RUN_CPU: '1'
+      CLOUD_RUN_CONCURRENCY: '80'
+      CLOUD_RUN_MAX_INSTANCES: '5'
+      CLOUD_RUN_MIN_INSTANCES: '0'
+      CLOUD_RUN_TIMEOUT: '300'
+      GCS_BUCKET: mermaidjs-server-cache
+      GCS_MOUNT_PATH: /mnt/gcs-cache
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          # 需要在仓库 Secrets 中添加 GCP_SA_KEY (包含 Cloud Run 部署权限的服务账号 JSON)
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Prepare vars
+        id: prep
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          IMAGE="${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}:$VERSION"
+          SERVICE_NAME="${CLOUD_RUN_SERVICE_NAME:-mermaidjs-server}"
+          REGION="${GCP_REGION:-asia-east1}"
+          MEMORY="${CLOUD_RUN_MEMORY:-1Gi}"
+          CPU="${CLOUD_RUN_CPU:-1}"
+          CONCURRENCY="${CLOUD_RUN_CONCURRENCY:-80}"
+          MAX_INSTANCES="${CLOUD_RUN_MAX_INSTANCES:-5}"
+          MIN_INSTANCES="${CLOUD_RUN_MIN_INSTANCES:-0}"
+          TIMEOUT="${CLOUD_RUN_TIMEOUT:-300}"
+          GCS_BUCKET="${GCS_BUCKET:-mermaidjs-server-cache}"
+          GCS_MOUNT_PATH="${GCS_MOUNT_PATH:-/mnt/gcs-cache}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "service=$SERVICE_NAME" >> $GITHUB_OUTPUT
+          echo "region=$REGION" >> $GITHUB_OUTPUT
+          echo "memory=$MEMORY" >> $GITHUB_OUTPUT
+          echo "cpu=$CPU" >> $GITHUB_OUTPUT
+          echo "concurrency=$CONCURRENCY" >> $GITHUB_OUTPUT
+          echo "max_instances=$MAX_INSTANCES" >> $GITHUB_OUTPUT
+          echo "min_instances=$MIN_INSTANCES" >> $GITHUB_OUTPUT
+          echo "timeout=$TIMEOUT" >> $GITHUB_OUTPUT
+          echo "gcs_bucket=$GCS_BUCKET" >> $GITHUB_OUTPUT
+          echo "gcs_mount_path=$GCS_MOUNT_PATH" >> $GITHUB_OUTPUT
+
+      - name: Deploy
+        run: |
+          gcloud run deploy ${{ steps.prep.outputs.service }} \
+            --image=${{ steps.prep.outputs.image }} \
+            --platform=managed \
+            --region=${{ steps.prep.outputs.region }} \
+            --allow-unauthenticated \
+            --port=8080 \
+            --memory=${{ steps.prep.outputs.memory }} \
+            --cpu=${{ steps.prep.outputs.cpu }} \
+            --concurrency=${{ steps.prep.outputs.concurrency }} \
+            --max-instances=${{ steps.prep.outputs.max_instances }} \
+            --min-instances=${{ steps.prep.outputs.min_instances }} \
+            --timeout=${{ steps.prep.outputs.timeout }} \
+            --mount=type=storage,source=${{ steps.prep.outputs.gcs_bucket }},destination=${{ steps.prep.outputs.gcs_mount_path }} \
+            --set-env-vars=CACHE_DIR=${{ steps.prep.outputs.gcs_mount_path }}
+
+      - name: Fetch Service URL
+        id: url
+        run: |
+          URL=$(gcloud run services describe ${{ steps.prep.outputs.service }} --region=${{ steps.prep.outputs.region }} --format='value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Service URL: $URL"
+
+      - name: Deployment Summary
+        run: |
+          echo "## ☁️ Cloud Run 部署" >> $GITHUB_STEP_SUMMARY
+          echo "服务: ${{ steps.prep.outputs.service }}" >> $GITHUB_STEP_SUMMARY
+          echo "版本: v${{ steps.prep.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "区域: ${{ steps.prep.outputs.region }}" >> $GITHUB_STEP_SUMMARY
+          echo "镜像: ${{ steps.prep.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "URL: ${{ steps.url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "GCS Bucket: ${{ steps.prep.outputs.gcs_bucket }} -> ${{ steps.prep.outputs.gcs_mount_path }} (CACHE_DIR)" >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "curl ${{ steps.url.outputs.url }}/health" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

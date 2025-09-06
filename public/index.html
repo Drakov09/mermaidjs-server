@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Mermaid 渲染演示</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="./style.css" />
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });</script>
+</head>
+<body>
+<header>
+  <h1>Mermaid 在线演示</h1>
+  <div class="status">WS: <span id="wsStatus">DISCONNECTED</span></div>
+</header>
+<main class="layout">
+  <section class="pane" id="editorPane">
+    <h2>1. 代码 & 配置</h2>
+    <label>主题:
+      <select id="theme">
+        <option value="default">default</option>
+        <option value="dark">dark</option>
+        <option value="forest">forest</option>
+        <option value="neutral">neutral</option>
+      </select>
+    </label>
+    <label>背景:
+      <select id="background">
+        <option value="white">white</option>
+        <option value="transparent">transparent</option>
+      </select>
+    </label>
+    <label>宽度: <input type="number" id="width" value="800" /></label>
+    <label>高度: <input type="number" id="height" value="600" /></label>
+    <textarea id="code" spellcheck="false">graph TD
+  A[开始] --> B{条件?}
+  B -- 是 --> C[处理1]
+  B -- 否 --> D[处理2]
+  C --> E[结束]
+  D --> E[结束]</textarea>
+    <div class="actions">
+      <button id="renderLocal">本地预览 (前端)</button>
+      <button id="renderServer">发送到服务器渲染 (PNG)</button>
+      <span id="validationMsg"></span>
+    </div>
+  </section>
+  <section class="pane" id="clientPane">
+    <h2>2. 前端直接渲染 (Mermaid)</h2>
+    <div id="clientRender" class="render-box"></div>
+  </section>
+  <section class="pane" id="serverPane">
+    <h2>3. 服务器渲染结果 (PNG)</h2>
+    <div id="serverInfo" class="info"></div>
+    <div id="serverRender" class="render-box center">
+      <span class="placeholder">尚未渲染</span>
+    </div>
+  </section>
+</main>
+<script src="./app.js"></script>
+</body>
+</html>

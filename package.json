@@ -1,0 +1,36 @@
+{
+  "name": "mermaidjs-server",
+  "version": "2.0.0",
+  "description": "A Node.js server that converts Mermaid diagrams to SVG/PNG using mermaid-cli",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@mermaid-js/mermaid-cli": "^11.9.0",
+    "fs-extra": "^11.2.0",
+    "uuid": "^9.0.1",
+  "puppeteer": "^23.11.1",
+  "sharp": "^0.33.0",
+  "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "mermaid",
+    "diagram",
+    "svg",
+    "png",
+    "server",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT"
+}

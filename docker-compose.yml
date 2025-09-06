@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  mermaidjs-server:
+    build: .
+    container_name: mermaidjs-server
+    ports:
+      - "8080:8080"
+    environment:
+      # Server Configuration
+      - PORT=8080
+      - CONTEXT_PATH=/
+      
+      # Cache Configuration
+      - CACHE_ENABLED=true
+      - CACHE_DIR=/usr/src/app/cache
+      - CACHE_TTL=86400000  # 24 hours
+      
+      # File System Configuration
+      - TEMP_DIR=/usr/src/app/temp
+      - MAX_REQUEST_SIZE=10mb
+      
+      # Default Mermaid Options
+      - DEFAULT_THEME=default
+      - DEFAULT_BACKGROUND=white
+      - DEFAULT_WIDTH=800
+      - DEFAULT_HEIGHT=600
+      
+      # Browser Configuration
+      - BROWSER_TIMEOUT=30000
+      - ENABLE_BROWSER_CACHE=true
+    
+    volumes:
+      # Persist cache data
+      - mermaid_cache:/usr/src/app/cache
+      
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Example with different configuration (API server)
+  mermaidjs-api:
+    build: .
+    container_name: mermaidjs-api
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - CONTEXT_PATH=/api/v1/mermaid
+      - CACHE_ENABLED=true
+      - CACHE_TTL=604800000  # 7 days
+      - DEFAULT_THEME=dark
+      - DEFAULT_BACKGROUND=transparent
+      - BROWSER_TIMEOUT=60000
+    
+    volumes:
+      - mermaid_api_cache:/usr/src/app/cache
+      
+    restart: unless-stopped
+    
+    profiles:
+      - api  # Use with: docker-compose --profile api up
+
+volumes:
+  mermaid_cache:
+    driver: local
+  mermaid_api_cache:
+    driver: local
+
+# Usage examples:
+# 
+# Start main server:
+# docker-compose up -d
+#
+# Start both servers:
+# docker-compose --profile api up -d
+#
+# View logs:
+# docker-compose logs -f mermaidjs-server
+#
+# Access APIs:
+# Main: http://localhost:8080/health
+# API:  http://localhost:3001/api/v1/mermaid/health

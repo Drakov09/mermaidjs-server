@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Server Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .example {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .mermaid-code {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mermaid Conversion Server - Test Page</h1>
+    
+    <div class="example">
+        <h3>Simple Flowchart (GET SVG)</h3>
+        <div class="mermaid-code">graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E</div>
+        <div class="result">
+            <img id="svg1" src="" alt="SVG will appear here">
+        </div>
+        <button onclick="loadSVG1()">Load SVG</button>
+    </div>
+
+    <div class="example">
+        <h3>Sequence Diagram (GET PNG with Dark Theme)</h3>
+        <div class="mermaid-code">sequenceDiagram
+    participant A as Alice
+    participant B as Bob
+    participant C as Carol
+    
+    A->>B: Hello Bob
+    B->>C: Hello Carol
+    C-->>B: Hi Bob
+    B-->>A: Hi Alice</div>
+        <div class="result">
+            <img id="png1" src="" alt="PNG will appear here">
+        </div>
+        <button onclick="loadPNG1()">Load PNG (Dark Theme)</button>
+    </div>
+
+    <div class="example">
+        <h3>Class Diagram (GET PNG with Transparent Background)</h3>
+        <div class="mermaid-code">classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +meow()
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat</div>
+        <div class="result">
+            <img id="png2" src="" alt="PNG will appear here">
+        </div>
+        <button onclick="loadPNG2()">Load PNG (Transparent)</button>
+    </div>
+
+    <div class="example">
+        <h3>POST Request Test</h3>
+        <textarea id="mermaidInput" rows="6" cols="50" placeholder="Enter your mermaid code here...">graph TD
+    Client --> LoadBalancer
+    LoadBalancer --> Server1
+    LoadBalancer --> Server2
+    Server1 --> Database
+    Server2 --> Database</textarea>
+        <br>
+        <button onclick="postSVG()">POST to SVG</button>
+        <button onclick="postPNG()">POST to PNG (Binary)</button>
+        <button onclick="postPNGBase64()">POST to PNG (Base64)</button>
+        <div class="result" id="postResult">Results will appear here</div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'http://localhost:8080';
+
+        function encodeBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+
+        function loadSVG1() {
+            const mermaidCode = `graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E`;
+            
+            const base64Code = encodeBase64(mermaidCode);
+            const url = `${SERVER_URL}/svg?mmd=${base64Code}`;
+            
+            document.getElementById('svg1').src = url;
+        }
+
+        function loadPNG1() {
+            const mermaidCode = `sequenceDiagram
+    participant A as Alice
+    participant B as Bob
+    participant C as Carol
+    
+    A->>B: Hello Bob
+    B->>C: Hello Carol
+    C-->>B: Hi Bob
+    B-->>A: Hi Alice`;
+            
+            const base64Code = encodeBase64(mermaidCode);
+            const url = `${SERVER_URL}/png?mmd=${base64Code}&theme=dark`;
+            
+            document.getElementById('png1').src = url;
+        }
+
+        function loadPNG2() {
+            const mermaidCode = `classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +meow()
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat`;
+            
+            const base64Code = encodeBase64(mermaidCode);
+            const url = `${SERVER_URL}/png?mmd=${base64Code}&bg=transparent`;
+            
+            document.getElementById('png2').src = url;
+        }
+
+        async function postSVG() {
+            const mermaidCode = document.getElementById('mermaidInput').value;
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/convert/svg`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        mermaid: mermaidCode,
+                        theme: 'default'
+                    })
+                });
+                
+                if (response.ok) {
+                    const svgText = await response.text();
+                    document.getElementById('postResult').innerHTML = `<h4>SVG Result:</h4><div>${svgText}</div>`;
+                } else {
+                    const error = await response.text();
+                    document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error}</pre>`;
+                }
+            } catch (error) {
+                document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function postPNG() {
+            const mermaidCode = document.getElementById('mermaidInput').value;
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/convert/png`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        mermaid: mermaidCode,
+                        format: 'binary'
+                    })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    document.getElementById('postResult').innerHTML = `<h4>PNG Result (Binary):</h4><img src="${imageUrl}" alt="Generated PNG">`;
+                } else {
+                    const error = await response.text();
+                    document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error}</pre>`;
+                }
+            } catch (error) {
+                document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error.message}</pre>`;
+            }
+        }
+
+        async function postPNGBase64() {
+            const mermaidCode = document.getElementById('mermaidInput').value;
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/convert/png`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        mermaid: mermaidCode,
+                        format: 'base64'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    const imageUrl = `data:image/png;base64,${result.data}`;
+                    document.getElementById('postResult').innerHTML = `
+                        <h4>PNG Result (Base64):</h4>
+                        <p>Size: ${result.size} bytes</p>
+                        <img src="${imageUrl}" alt="Generated PNG">
+                        <details>
+                            <summary>Base64 Data (click to expand)</summary>
+                            <textarea rows="5" cols="50">${result.data}</textarea>
+                        </details>
+                    `;
+                } else {
+                    const error = await response.text();
+                    document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error}</pre>`;
+                }
+            } catch (error) {
+                document.getElementById('postResult').innerHTML = `<h4>Error:</h4><pre>${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>
