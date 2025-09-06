@@ -147,7 +147,9 @@ jobs:
             --max-instances=${{ steps.prep.outputs.max_instances }} \
             --min-instances=${{ steps.prep.outputs.min_instances }} \
             --timeout=${{ steps.prep.outputs.timeout }} \
-            --mount=type=storage,source=${{ steps.prep.outputs.gcs_bucket }},destination=${{ steps.prep.outputs.gcs_mount_path }} \
+            --execution-environment=gen2 \
+            --add-volume=name=gcs-cache,type=cloud-storage,bucket=${{ steps.prep.outputs.gcs_bucket }} \
+            --add-volume-mount=volume=gcs-cache,mount-path=${{ steps.prep.outputs.gcs_mount_path }} \
             --set-env-vars=CACHE_DIR=${{ steps.prep.outputs.gcs_mount_path }}
 
       - name: Fetch Service URL
