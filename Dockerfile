@@ -52,6 +52,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # (Chromium binary will be downloaded during npm ci by Puppeteer)
 
+# Pre-install Chrome via Puppeteer (ensures deterministic browser layer; speeds build & runtime)
+RUN npm init -y >/dev/null 2>&1 && \
+    npm install --no-audit --no-fund puppeteer@${PUPPETEER_VERSION:-23.11.1} && \
+    npx puppeteer browsers install chrome && \
+    rm -rf node_modules/.cache && \
+    rm -f package.json package-lock.json
+
 FROM base AS deps
 COPY package*.json ./
 RUN npm ci --omit=dev
