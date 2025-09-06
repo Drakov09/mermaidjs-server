@@ -1,13 +1,10 @@
-docker build -t mermaidjs-server .
-docker run -p 8080:8080 -e CACHE_TTL=604800000 -e CONTEXT_PATH=/mermaid -e BROWSER_IDLE_MAX_MS=60000 mermaidjs-server
-docker buildx build --platform linux/amd64,linux/arm64 -t yourrepo/mermaidjs-server:latest --push .
-def get_mermaid_png_url(mermaid_text, theme='default'):
-def convert_mermaid_to_png(mermaid_text):
+
 # Mermaid 转换服务
 
 高性能 Mermaid 在线转换服务，使用 Node.js (Express) 提供将 Mermaid 图定义转换为 SVG 或 PNG 的接口。内置文件系统缓存、参数规范化、性能诊断响应头，并最小化浏览器 (Puppeteer) 使用：只在首次生成某图的 SVG 时启动一次。PNG 由 `sharp` 直接栅格化缓存的 SVG，避免高资源开销的浏览器截图。
 
 现在也支持：
+
 * WebSocket 实时渲染：路径 `/ws`，消息 `{type:"render", mermaid, theme, backgroundColor, width, height, format}` 返回 `{type:"render-result", ...}`。
 * 前端演示页面：`/demo/index.html`（自动适配 `CONTEXT_PATH`）。页面包含：代码编辑、客户端（仅浏览器 mermaid）预览、服务端渲染结果与耗时/缓存命中信息。
 
@@ -29,19 +26,19 @@ def convert_mermaid_to_png(mermaid_text):
 
 ## 接口概览
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | / | 自描述 JSON |
-| GET | /health | 健康状态 |
-| GET | /svg | base64 mmd → SVG |
-| GET | /png | base64 mmd → PNG |
-| POST | /convert/svg | JSON → SVG |
-| POST | /convert/png | JSON → PNG（可 base64）|
-| GET | /cache/stats | 缓存统计 |
-| DELETE | /cache | 清空缓存 |
-| DELETE | /cache/{cacheKey} | 删除单条缓存 |
-| WS | /ws | WebSocket 渲染（JSON 协议）|
-| GET | /demo/index.html | 演示页面 |
+| 方法   | 路径              | 说明                        |
+| ------ | ----------------- | --------------------------- |
+| GET    | /                 | 自描述 JSON                 |
+| GET    | /health           | 健康状态                    |
+| GET    | /svg              | base64 mmd → SVG           |
+| GET    | /png              | base64 mmd → PNG           |
+| POST   | /convert/svg      | JSON → SVG                 |
+| POST   | /convert/png      | JSON → PNG（可 base64）    |
+| GET    | /cache/stats      | 缓存统计                    |
+| DELETE | /cache            | 清空缓存                    |
+| DELETE | /cache/{cacheKey} | 删除单条缓存                |
+| WS     | /ws               | WebSocket 渲染（JSON 协议） |
+| GET    | /demo/index.html  | 演示页面                    |
 
 若配置 `CONTEXT_PATH`（例如 `/api/mermaid`），上述路径自动加前缀。
 
@@ -49,19 +46,20 @@ def convert_mermaid_to_png(mermaid_text):
 
 GET /svg 与 /png 公共 query：
 
-| 参数 | 含义 | 必填 |
-|------|------|------|
-| mmd | base64 Mermaid 文本 | 是 |
-| theme | default/dark/forest/neutral | 否 |
-| bg | 背景：white/transparent/#hex | 否 |
-| w | 宽度 | 否 |
-| h | 高度 | 否 |
+| 参数  | 含义                         | 必填 |
+| ----- | ---------------------------- | ---- |
+| mmd   | base64 Mermaid 文本          | 是   |
+| theme | default/dark/forest/neutral  | 否   |
+| bg    | 背景：white/transparent/#hex | 否   |
+| w     | 宽度                         | 否   |
+| h     | 高度                         | 否   |
 
 POST /convert/svg 与 /convert/png 请求体字段：`mermaid`, `theme`, `backgroundColor`, `width`, `height`, 以及（仅 PNG）`format`。
 
 `format = "base64"` 时返回 JSON；否则返回二进制图片。
 
 ## 示例：POST /convert/png 请求体
+
 ```json
 {
   "mermaid": "graph TD\nA-->B",
@@ -73,19 +71,19 @@ POST /convert/svg 与 /convert/png 请求体字段：`mermaid`, `theme`, `backgr
 
 ## 响应诊断头
 
-| Header | 含义 |
-|--------|------|
-| X-Mermaid-Cache | HIT / HIT-SVG / MISS |
-| X-Mermaid-Cache-Key | 缓存键（SHA256）|
-| X-Mermaid-Source | cache / cache-svg-rasterized / api |
-| X-Mermaid-Render-Time-ms | 生成 SVG 耗时 |
-| X-Mermaid-Rasterize-Time-ms | SVG→PNG (sharp) 耗时 |
-| X-Mermaid-Cache-Lookup-ms | 缓存查询耗时 |
-| X-Mermaid-Total-Time-ms | 总耗时 |
-| X-Mermaid-Params | 规范参数 JSON |
-| X-Mermaid-Browser-Startup-Time-ms | 浏览器首次启动耗时 |
-| X-Mermaid-Browser-Reused | 是否复用浏览器 |
-| X-Mermaid-Browser-Fallback | 预留（当前为空）|
+| Header                            | 含义                               |
+| --------------------------------- | ---------------------------------- |
+| X-Mermaid-Cache                   | HIT / HIT-SVG / MISS               |
+| X-Mermaid-Cache-Key               | 缓存键（SHA256）                   |
+| X-Mermaid-Source                  | cache / cache-svg-rasterized / api |
+| X-Mermaid-Render-Time-ms          | 生成 SVG 耗时                      |
+| X-Mermaid-Rasterize-Time-ms       | SVG→PNG (sharp) 耗时              |
+| X-Mermaid-Cache-Lookup-ms         | 缓存查询耗时                       |
+| X-Mermaid-Total-Time-ms           | 总耗时                             |
+| X-Mermaid-Params                  | 规范参数 JSON                      |
+| X-Mermaid-Browser-Startup-Time-ms | 浏览器首次启动耗时                 |
+| X-Mermaid-Browser-Reused          | 是否复用浏览器                     |
+| X-Mermaid-Browser-Fallback        | 预留（当前为空）                   |
 
 ## 渲染架构说明
 
@@ -97,27 +95,33 @@ POST /convert/svg 与 /convert/png 请求体字段：`mermaid`, `theme`, `backgr
 ## 安装与运行
 
 本地：
+
 ```bash
 npm install
 npm start
 ```
+
 开发模式：
+
 ```bash
 npm run dev
 ```
 
 Docker：
+
 ```bash
 docker build -t mermaidjs-server .
 docker run -p 8080:8080 -e CONTEXT_PATH=/mermaid mermaidjs-server
 ```
 
 多平台：
+
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 -t yourrepo/mermaidjs-server:latest --push .
 ```
 
 Docker Hub 直接拉取运行：
+
 ```bash
 # 拉取最新版本 (假设已推送到命名空间 lihongjie0209)
 docker pull lihongjie0209/mermaidjs-server:latest
@@ -146,11 +150,13 @@ curl -X POST http://localhost:8080/convert/svg -H 'Content-Type: application/jso
 ## 使用示例
 
 HTML：
+
 ```html
 <img src="http://localhost:8080/png?mmd=${btoa('graph TD\\nA-->B')}" />
 ```
 
 curl：
+
 ```bash
 # SVG
 curl -X POST http://localhost:8080/convert/svg -H "Content-Type: application/json" -d '{"mermaid":"graph TD\\nA-->B"}' -o d.svg
@@ -164,6 +170,7 @@ curl -X POST http://localhost:8080/convert/png -H "Content-Type: application/jso
 ```
 
 Node.js：
+
 ```javascript
 async function toPngBase64(code){
   const r=await fetch('http://localhost:8080/convert/png',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mermaid:code,format:'base64'})});
@@ -172,6 +179,7 @@ async function toPngBase64(code){
 ```
 
 Python：
+
 ```python
 import base64,requests
 resp=requests.post('http://localhost:8080/convert/png',json={"mermaid":"graph TD\nA-->B","format":"base64"})
@@ -180,25 +188,25 @@ open('d.png','wb').write(base64.b64decode(resp.json()['data']))
 
 ## 环境变量
 
-| 变量 | 说明 | 默认 |
-|------|------|------|
-| PORT | 端口 | 8080 |
-| CONTEXT_PATH | 路由前缀 | / |
-| CACHE_ENABLED | 启用缓存 | true |
-| CACHE_DIR | 缓存目录 | ./cache |
-| CACHE_TTL | 缓存 TTL (ms) | 86400000 |
-| TEMP_DIR | 临时目录 | ./temp |
-| MAX_REQUEST_SIZE | 请求体限制 | 10mb |
-| DEFAULT_THEME | 默认主题 | default |
-| DEFAULT_BACKGROUND | 默认背景 | white |
-| DEFAULT_WIDTH | 默认宽度 | 800 |
-| DEFAULT_HEIGHT | 默认高度 | 600 |
-| BROWSER_TIMEOUT | 浏览器启动/页面超时 | 30000 |
-| ENABLE_BROWSER_CACHE | 返回浏览器缓存头 | true |
-| BROWSER_IDLE_MAX_MS | 浏览器空闲关闭 (0=不关) | 300000 |
-| BROWSER_HEADLESS_MODE | 无头模式 | new |
-| WS_IDLE_CLOSE_MS | WS 空闲关闭阈值 (ms) | 120000 |
-| WS_PING_INTERVAL_MS | WS 心跳发送间隔 (ms) | 30000 |
+| 变量                  | 说明                    | 默认     |
+| --------------------- | ----------------------- | -------- |
+| PORT                  | 端口                    | 8080     |
+| CONTEXT_PATH          | 路由前缀                | /        |
+| CACHE_ENABLED         | 启用缓存                | true     |
+| CACHE_DIR             | 缓存目录                | ./cache  |
+| CACHE_TTL             | 缓存 TTL (ms)           | 86400000 |
+| TEMP_DIR              | 临时目录                | ./temp   |
+| MAX_REQUEST_SIZE      | 请求体限制              | 10mb     |
+| DEFAULT_THEME         | 默认主题                | default  |
+| DEFAULT_BACKGROUND    | 默认背景                | white    |
+| DEFAULT_WIDTH         | 默认宽度                | 800      |
+| DEFAULT_HEIGHT        | 默认高度                | 600      |
+| BROWSER_TIMEOUT       | 浏览器启动/页面超时     | 30000    |
+| ENABLE_BROWSER_CACHE  | 返回浏览器缓存头        | true     |
+| BROWSER_IDLE_MAX_MS   | 浏览器空闲关闭 (0=不关) | 300000   |
+| BROWSER_HEADLESS_MODE | 无头模式                | new      |
+| WS_IDLE_CLOSE_MS      | WS 空闲关闭阈值 (ms)    | 120000   |
+| WS_PING_INTERVAL_MS   | WS 心跳发送间隔 (ms)    | 30000    |
 
 ## 缓存策略
 
@@ -208,17 +216,19 @@ open('d.png','wb').write(base64.b64decode(resp.json()['data']))
 
 ## 错误
 
-| 状态码 | 描述 |
-|--------|------|
-| 400 | 缺少参数（如 mermaid/mmd）|
-| 500 | 渲染或内部错误 |
+| 状态码 | 描述                       |
+| ------ | -------------------------- |
+| 400    | 缺少参数（如 mermaid/mmd） |
+| 500    | 渲染或内部错误             |
 
 示例：
+
 ```json
 {"error":"Mermaid diagram text is required"}
 ```
 
 ## GET 参数编码
+
 ```bash
 RAW='graph TD\nA-->B'
 ENC=$(printf "%s" "$RAW" | base64 -w0)
@@ -236,11 +246,13 @@ curl "http://localhost:8080/svg?mmd=$ENC"
 ## WebSocket 协议示例
 
 发送：
+
 ```json
 {"type":"render","mermaid":"graph TD\nA-->B","format":"png","theme":"dark"}
 ```
 
 返回 (PNG)：
+
 ```json
 {
   "type":"render-result",
@@ -253,6 +265,7 @@ curl "http://localhost:8080/svg?mmd=$ENC"
 ```
 
 返回 (SVG)：
+
 ```json
 {
   "type":"render-result",

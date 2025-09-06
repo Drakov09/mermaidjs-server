@@ -22,7 +22,8 @@ ENV NODE_ENV=production \
     BROWSER_TIMEOUT=30000 \
     ENABLE_BROWSER_CACHE=true \
     BROWSER_IDLE_MAX_MS=300000 \
-    BROWSER_HEADLESS_MODE=new
+    BROWSER_HEADLESS_MODE=new \
+    PUPPETEER_CACHE_DIR=/root/.cache/puppeteer
 
 ## Install shared libraries & fonts needed by headless Chromium (works for both amd64 & arm64)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -70,7 +71,9 @@ RUN mkdir -p cache temp && chmod 777 cache temp
 
 # Create a non-root user for security
 RUN groupadd -r nodeuser && useradd -r -g nodeuser nodeuser && \
-    chown -R nodeuser:nodeuser /app
+    mkdir -p /home/nodeuser/.cache && \
+    ln -s /root/.cache/puppeteer /home/nodeuser/.cache/puppeteer || true && \
+    chown -R nodeuser:nodeuser /app /home/nodeuser/.cache
 USER nodeuser
 
 # Expose the port on which your app will run
